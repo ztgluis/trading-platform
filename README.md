@@ -8,7 +8,7 @@ The platform is organized into milestones:
 
 | Milestone | Status | Description |
 |-----------|--------|-------------|
-| M1: Data Layer | In Progress | Fetch and normalize OHLCV data across asset classes |
+| M1: Data Layer | Complete | Fetch and normalize OHLCV data across asset classes |
 | M2: Indicator Library | Planned | Parameterized MA, RSI, MACD, volume indicators |
 | M3: Signal Engine | Planned | 3-condition entry check with scoring |
 | M4: Backtester | Planned | Historical replay with walk-forward splits |
@@ -55,10 +55,42 @@ trade-analysis/
 └── scripts/         # CLI utilities
 ```
 
+## Usage
+
+### Fetch data programmatically
+
+```python
+from trade_analysis.data_manager import DataManager
+from trade_analysis.models.ohlcv import Timeframe
+
+dm = DataManager()
+
+# Fetch daily AAPL data
+df = dm.get_ohlcv("AAPL", Timeframe.DAILY)
+
+# Fetch with inverse (for short-side signal detection)
+df_inv = dm.get_ohlcv("AAPL", Timeframe.DAILY, inverse=True)
+
+# Fetch crypto
+df_btc = dm.get_ohlcv("BTC/USDT", Timeframe.H4)
+
+# Fetch multiple symbols
+results = dm.get_multiple(["AAPL", "MSFT", "NVDA"], Timeframe.DAILY)
+```
+
+### CLI smoke test
+
+```bash
+python -m scripts.fetch_sample AAPL Daily
+python -m scripts.fetch_sample BTC/USDT 4H
+python -m scripts.fetch_sample AAPL Daily --inverse
+```
+
 ## Running Tests
 
 ```bash
-pytest tests/ -v
+pytest tests/ -v         # 108 tests
+pytest tests/ -v --cov   # With coverage
 ```
 
 ## Tech Stack
