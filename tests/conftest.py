@@ -99,3 +99,31 @@ def sample_ccxt_raw() -> list[list]:
             rng.uniform(100, 1000),
         ])
     return data
+
+
+@pytest.fixture
+def sample_200bar_ohlcv() -> pd.DataFrame:
+    """200 business days of AAPL-like data for indicator warmup testing."""
+    timestamps = pd.date_range("2023-01-02", periods=200, freq="B", tz="UTC")
+    rng = np.random.default_rng(42)
+    base = 150.0
+    closes = base + rng.standard_normal(200).cumsum() * 0.8
+    # Ensure all prices stay positive
+    closes = np.maximum(closes, 10.0)
+    df = pd.DataFrame({
+        "timestamp": timestamps,
+        "open": closes - rng.uniform(0, 1.5, 200),
+        "high": closes + rng.uniform(0.5, 3, 200),
+        "low": closes - rng.uniform(0.5, 3, 200),
+        "close": closes,
+        "volume": rng.uniform(3e7, 1.2e8, 200),
+    })
+    df.attrs = {
+        "symbol": "AAPL",
+        "asset_class": "stock",
+        "timeframe": "Daily",
+        "provider": "yfinance",
+        "is_inverse": False,
+        "inverse_of": None,
+    }
+    return df
