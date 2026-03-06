@@ -1,0 +1,15 @@
+# Cache configuration for local OHLCV data storage.
+
+cache:
+  storage_path: "data/cache"
+
+  # TTL per timeframe (seconds): how long before data is considered stale
+  ttl_seconds:
+    "1H": 1800
+    "4H": 3600
+    "Daily": 43200
+    "Weekly": 86400
+    "Monthly": 172800
+
+  # Hard expiration: delete cache files older than this during cleanup
+  max_age_days: 90

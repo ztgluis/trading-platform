@@ -1,0 +1,72 @@
+# Symbol universe for the swing trading platform.
+# Each symbol specifies its asset class, data provider, and active timeframes.
+
+symbols:
+  # === Stocks (Bucket A: 4H/Daily) ===
+  - ticker: "AAPL"
+    asset_class: "stock"
+    provider: "yfinance"
+    timeframes: ["4H", "Daily"]
+
+  - ticker: "MSFT"
+    asset_class: "stock"
+    provider: "yfinance"
+    timeframes: ["4H", "Daily"]
+
+  - ticker: "NVDA"
+    asset_class: "stock"
+    provider: "yfinance"
+    timeframes: ["4H", "Daily"]
+
+  - ticker: "TSLA"
+    asset_class: "stock"
+    provider: "yfinance"
+    timeframes: ["4H", "Daily"]
+
+  # === ETFs ===
+  - ticker: "QQQ"
+    asset_class: "etf"
+    provider: "yfinance"
+    timeframes: ["4H", "Daily", "Weekly"]
+    inverse_ticker: "SQQQ"
+
+  - ticker: "SPY"
+    asset_class: "etf"
+    provider: "yfinance"
+    timeframes: ["4H", "Daily", "Weekly"]
+    inverse_ticker: "SH"
+
+  # === Indices (Bucket B: Weekly/Monthly) ===
+  - ticker: "^GSPC"
+    asset_class: "index"
+    provider: "yfinance"
+    timeframes: ["Daily", "Weekly", "Monthly"]
+
+  # === Crypto ===
+  - ticker: "BTC/USDT"
+    asset_class: "crypto"
+    provider: "ccxt"
+    timeframes: ["4H", "Daily", "Weekly"]
+    exchange: "binance"
+
+  - ticker: "ETH/USDT"
+    asset_class: "crypto"
+    provider: "ccxt"
+    timeframes: ["4H", "Daily", "Weekly"]
+    exchange: "binance"
+
+  # === Metals ===
+  - ticker: "GC=F"
+    asset_class: "metal"
+    provider: "yfinance"
+    timeframes: ["Daily", "Weekly", "Monthly"]
+
+  - ticker: "SI=F"
+    asset_class: "metal"
+    provider: "yfinance"
+    timeframes: ["Daily", "Weekly"]
+
+# Default timeframes per bucket
+defaults:
+  bucket_a_timeframes: ["4H", "Daily"]
+  bucket_b_timeframes: ["Weekly", "Monthly"]

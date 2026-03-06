@@ -1,0 +1,29 @@
+# Data provider configurations.
+# API keys are referenced via ${ENV_VAR} and resolved at runtime from .env.
+
+providers:
+  yfinance:
+    rate_limit_calls_per_minute: 60
+    retry_count: 3
+    retry_delay_seconds: 2.0
+    api_key_env_var: null
+    api_secret_env_var: null
+    max_intraday_history_days: 729
+
+  ccxt:
+    rate_limit_calls_per_minute: 30
+    retry_count: 3
+    retry_delay_seconds: 5.0
+    api_key_env_var: "${CCXT_API_KEY}"
+    api_secret_env_var: "${CCXT_API_SECRET}"
+    default_exchange: "binance"
+    max_candles_per_request: 1000
+
+  schwab:
+    rate_limit_calls_per_minute: 120
+    retry_count: 3
+    retry_delay_seconds: 1.0
+    api_key_env_var: "${SCHWAB_API_KEY}"
+    api_secret_env_var: "${SCHWAB_API_SECRET}"
+    redirect_uri: "${SCHWAB_REDIRECT_URI}"
+    token_path: "data/schwab_token.json"
