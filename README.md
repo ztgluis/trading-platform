@@ -9,7 +9,7 @@ The platform is organized into milestones:
 | Milestone | Status | Description |
 |-----------|--------|-------------|
 | M1: Data Layer | Complete | Fetch and normalize OHLCV data across asset classes |
-| M2: Indicator Library | Planned | Parameterized MA, RSI, MACD, volume indicators |
+| M2: Indicator Library | Complete | Parameterized MA, RSI, MACD, volume, structure, levels |
 | M3: Signal Engine | Planned | 3-condition entry check with scoring |
 | M4: Backtester | Planned | Historical replay with walk-forward splits |
 | M5: Grid Runner | Planned | Parameter optimization across combinations |
@@ -50,6 +50,7 @@ trade-analysis/
 │   ├── providers/   # Data providers (yfinance, ccxt, schwab)
 │   ├── cache/       # Parquet-based local cache
 │   ├── transforms/  # Normalize, timeframe aggregation, inverse
+│   ├── indicators/  # Technical indicators (trend, momentum, structure, volume, levels)
 │   └── data_manager.py  # Main orchestrator
 ├── tests/           # pytest test suite
 └── scripts/         # CLI utilities
@@ -78,6 +79,37 @@ df_btc = dm.get_ohlcv("BTC/USDT", Timeframe.H4)
 results = dm.get_multiple(["AAPL", "MSFT", "NVDA"], Timeframe.DAILY)
 ```
 
+### Apply indicators
+
+```python
+from trade_analysis.indicators import (
+    add_sma, add_ema, add_rsi, add_macd,
+    detect_swing_highs, detect_swing_lows,
+    detect_volume_spike, detect_pivot_levels,
+    detect_round_numbers, find_nearest_level,
+)
+
+# Add trend indicators
+df = add_sma(df, period=50)
+df = add_ema(df, period=21)
+
+# Add momentum indicators
+df = add_rsi(df, period=14)
+df = add_macd(df)
+
+# Detect swing structure
+df = detect_swing_highs(df, lookback=5)
+df = detect_swing_lows(df, lookback=5)
+
+# Volume analysis
+df = detect_volume_spike(df, period=20, threshold=1.5)
+
+# Key support/resistance levels
+levels = detect_pivot_levels(df, lookback=5)
+round_levels = detect_round_numbers(df["close"].iloc[-1])
+nearest = find_nearest_level(df["close"].iloc[-1], levels)
+```
+
 ### CLI smoke test
 
 ```bash
@@ -89,7 +121,7 @@ python -m scripts.fetch_sample AAPL Daily --inverse
 ## Running Tests
 
 ```bash
-pytest tests/ -v         # 108 tests
+pytest tests/ -v         # 148 tests
 pytest tests/ -v --cov   # With coverage
 ```
 
@@ -100,4 +132,5 @@ pytest tests/ -v --cov   # With coverage
 - **Stocks/ETFs/Metals**: yfinance
 - **Crypto**: CCXT
 - **Database**: Supabase (PostgreSQL)
+- **Indicators**: pandas-ta (SMA, EMA, RSI, MACD)
 - **Config**: YAML + python-dotenv for secrets
