@@ -1,0 +1,18 @@
+# Backtest configuration for historical replay.
+# All tunable parameters for the backtester are centralized here.
+
+backtest:
+  # === Date Range ===
+  date_range:
+    start: "2020-01-01"
+    end: "2024-12-31"
+
+  # === Capital & Position Limits ===
+  initial_capital: 100000.0
+  max_open_positions: 1   # per symbol, no pyramiding
+
+  # === Walk-Forward Validation ===
+  walk_forward:
+    in_sample_years: 3
+    out_of_sample_years: 1
+    anchored: true         # true = expanding IS window, false = rolling
