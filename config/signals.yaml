@@ -1,0 +1,70 @@
+# Signal engine configuration for swing trading strategy.
+# All tunable parameters are centralized here.
+
+signals:
+  # === Bucket Definitions ===
+  buckets:
+    A:
+      name: "Short Swing"
+      asset_classes: ["stock", "etf", "crypto"]
+      primary_timeframe: "4H"
+      confirmation_timeframe: "Daily"
+      trend_ma_type: "ema"
+      trend_ma_period: 21
+      max_hold_weeks: 4
+      target_r_multiple: 2.0
+      trail_breakeven_r: 1.0
+    B:
+      name: "Long Swing"
+      asset_classes: ["index", "metal"]
+      primary_timeframe: "Weekly"
+      confirmation_timeframe: "Monthly"
+      trend_ma_type: "sma"
+      trend_ma_period: 50
+      max_hold_weeks: null
+      target_r_multiple: 3.0
+      trail_breakeven_r: 1.5
+
+  # === Regime Filter ===
+  regime:
+    ma_type: "sma"
+    ma_period: 200
+    transition_consecutive_closes: 3
+    strong_alignment_pct: 5.0
+
+  # === Condition Parameters ===
+  conditions:
+    structure:
+      swing_lookback: 3
+      level_proximity_pct: 3.0
+      pivot_lookback: 5
+      pivot_merge_distance_pct: 0.5
+
+    momentum:
+      rsi_period: 14
+      rsi_bull_threshold: 50
+      rsi_bear_threshold: 50
+      macd_fast: 12
+      macd_slow: 26
+      macd_signal: 9
+
+  # === Scoring Weights ===
+  scoring:
+    trend_confirmed: 1
+    structure_single_method: 1
+    structure_multi_method: 2
+    momentum_confirmed: 1
+    regime_strongly_aligned: 1
+    volume_spike_on_entry: 1
+    tradeable_threshold: 3
+
+  # === Volume ===
+  volume:
+    sma_period: 20
+    spike_threshold: 1.5
+
+  # === Exit Levels ===
+  exits:
+    atr_period: 14
+    stop_method: "swing"
+    atr_stop_multiplier: 1.5
