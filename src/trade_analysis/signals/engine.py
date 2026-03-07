@@ -7,9 +7,20 @@ generate_signals() pipeline that ties conditions, scoring, and exits together.
 from dataclasses import dataclass, field
 from pathlib import Path
 
+import pandas as pd
 import yaml
 
 from trade_analysis.exceptions import ConfigError
+from trade_analysis.indicators.trend import add_ma
+from trade_analysis.indicators.volume import detect_volume_spike
+from trade_analysis.signals.conditions import (
+    evaluate_momentum_condition,
+    evaluate_structure_condition,
+    evaluate_trend_condition,
+)
+from trade_analysis.signals.exits import compute_exit_levels
+from trade_analysis.signals.regime import detect_regime
+from trade_analysis.signals.scoring import compute_signal_score, determine_signal_direction
 
 
 # ---------------------------------------------------------------------------
@@ -236,3 +247,117 @@ def get_bucket_for_asset(
         f"Bucket A: {config.bucket_a.asset_classes}, "
         f"Bucket B: {config.bucket_b.asset_classes}"
     )
+
+
+# ---------------------------------------------------------------------------
+# Orchestrator
+# ---------------------------------------------------------------------------
+
+
+def generate_signals(
+    df: pd.DataFrame,
+    asset_class: str,
+    config: SignalEngineConfig | None = None,
+    config_path: Path | None = None,
+) -> pd.DataFrame:
+    """Run the full signal engine pipeline on an OHLCV DataFrame.
+
+    Pipeline steps:
+        1. Load config and resolve bucket for asset class
+        2. Add trend MA (bucket-specific)
+        3. Detect volume spikes
+        4. Detect market regime (SMA/EMA 200)
+        5. Evaluate conditions: trend, structure, momentum
+        6. Determine signal direction (2-of-3 gate + regime filter)
+        7. Compute signal score (0-6)
+        8. Compute exit levels (stop, target, trail-to-breakeven)
+
+    Args:
+        df: Canonical OHLCV DataFrame.
+        asset_class: Asset class string (stock, etf, crypto, index, metal).
+        config: Pre-loaded SignalEngineConfig. If None, loaded from config_path.
+        config_path: Path to signals.yaml (used if config is None).
+
+    Returns:
+        DataFrame with all signal columns appended:
+            - Trend MA, volume spike
+            - Regime: regime_ma, regime, regime_allow_long/short, etc.
+            - Conditions: trend_bull/bear, structure_bull/bear, momentum_bull/bear
+            - Direction: signal_direction, signal_conditions_met
+            - Score: signal_score, signal_tradeable
+            - Exits: exit_stop, exit_target, exit_trail_be, exit_risk, etc.
+    """
+    if config is None:
+        config = load_signal_config(config_path)
+
+    bucket = get_bucket_for_asset(asset_class, config)
+
+    # Step 1: Add trend MA for this bucket
+    ma_col = f"{bucket.trend_ma_type}_{bucket.trend_ma_period}"
+    result = add_ma(
+        df,
+        period=bucket.trend_ma_period,
+        ma_type=bucket.trend_ma_type,
+    )
+
+    # Step 2: Volume spike detection
+    result = detect_volume_spike(
+        result,
+        period=config.volume_sma_period,
+        threshold=config.volume_spike_threshold,
+    )
+
+    # Step 3: Regime detection
+    result = detect_regime(
+        result,
+        ma_type=config.regime_ma_type,
+        ma_period=config.regime_ma_period,
+        transition_closes=config.regime_transition_closes,
+        strong_alignment_pct=config.regime_strong_alignment_pct,
+    )
+
+    # Step 4: Trend condition
+    result = evaluate_trend_condition(result, ma_column=ma_col)
+
+    # Step 5: Structure condition
+    result = evaluate_structure_condition(
+        result,
+        swing_lookback=config.swing_lookback,
+        level_proximity_pct=config.level_proximity_pct,
+        pivot_lookback=config.pivot_lookback,
+        pivot_merge_distance_pct=config.pivot_merge_distance_pct,
+    )
+
+    # Step 6: Momentum condition
+    result = evaluate_momentum_condition(
+        result,
+        rsi_period=config.rsi_period,
+        rsi_bull_threshold=config.rsi_bull_threshold,
+        rsi_bear_threshold=config.rsi_bear_threshold,
+        macd_fast=config.macd_fast,
+        macd_slow=config.macd_slow,
+        macd_signal=config.macd_signal,
+    )
+
+    # Step 7: Signal direction (2-of-3 gate)
+    result = determine_signal_direction(result)
+
+    # Step 8: Signal scoring
+    result = compute_signal_score(
+        result,
+        weights=config.scoring_weights,
+        tradeable_threshold=config.tradeable_threshold,
+    )
+
+    # Step 9: Exit levels
+    result = compute_exit_levels(
+        result,
+        atr_period=config.atr_period,
+        stop_method=config.stop_method,
+        atr_stop_multiplier=config.atr_stop_multiplier,
+        swing_lookback=config.swing_lookback,
+        target_r_multiple=bucket.target_r_multiple,
+        trail_breakeven_r=bucket.trail_breakeven_r,
+    )
+
+    return result
