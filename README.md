@@ -10,7 +10,7 @@ The platform is organized into milestones:
 |-----------|--------|-------------|
 | M1: Data Layer | Complete | Fetch and normalize OHLCV data across asset classes |
 | M2: Indicator Library | Complete | MA/ATR/VIDYA, RSI/MACD, oscillators, trend signals, structure, levels |
-| M3: Signal Engine | Planned | 3-condition entry check with scoring |
+| M3: Signal Engine | Complete | 2-of-3 condition entry, regime filter, scoring (0-6), exit levels |
 | M4: Backtester | Planned | Historical replay with walk-forward splits |
 | M5: Grid Runner | Planned | Parameter optimization across combinations |
 | M6: Results Analyzer | Planned | Hypothesis testing + Supabase persistence |
@@ -51,6 +51,7 @@ trade-analysis/
 │   ├── cache/       # Parquet-based local cache
 │   ├── transforms/  # Normalize, timeframe aggregation, inverse
 │   ├── indicators/  # Technical indicators (trend, momentum, structure, volume, levels)
+│   ├── signals/     # Signal engine (regime, conditions, scoring, exits)
 │   └── data_manager.py  # Main orchestrator
 ├── tests/           # pytest test suite
 └── scripts/         # CLI utilities
@@ -117,6 +118,29 @@ df = detect_volume_spike(df, period=20, threshold=1.5)
 levels = detect_pivot_levels(df, lookback=5)
 ```
 
+### Generate trading signals
+
+```python
+from trade_analysis.signals import generate_signals, load_signal_config
+
+# Load config (auto-loads from config/signals.yaml)
+config = load_signal_config()
+
+# Run full signal pipeline on OHLCV data
+result = generate_signals(df, asset_class="stock", config=config)
+
+# Filter for tradeable signals (score >= 3)
+tradeable = result[result["signal_tradeable"]]
+print(tradeable[["close", "signal_direction", "signal_score",
+                  "exit_stop", "exit_target", "exit_rr_ratio"]])
+
+# Use individual components
+from trade_analysis.signals import detect_regime, evaluate_trend_condition
+
+regime_df = detect_regime(df, ma_type="sma", ma_period=200)
+print(regime_df[["close", "regime", "regime_distance_pct"]])
+```
+
 ### CLI smoke test
 
 ```bash
@@ -128,7 +152,7 @@ python -m scripts.fetch_sample AAPL Daily --inverse
 ## Running Tests
 
 ```bash
-pytest tests/ -v         # 194 tests
+pytest tests/ -v         # 333 tests
 pytest tests/ -v --cov   # With coverage
 ```
 
@@ -140,4 +164,5 @@ pytest tests/ -v --cov   # With coverage
 - **Crypto**: CCXT
 - **Database**: Supabase (PostgreSQL)
 - **Indicators**: pandas-ta + custom (SMA, EMA, HMA, ZLEMA, VIDYA, ATR, RSI, MACD, oscillators, trend signals)
+- **Signals**: Regime detection, 2-of-3 condition gate, composite scoring, exit levels
 - **Config**: YAML + python-dotenv for secrets
