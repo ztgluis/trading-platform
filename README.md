@@ -9,7 +9,7 @@ The platform is organized into milestones:
 | Milestone | Status | Description |
 |-----------|--------|-------------|
 | M1: Data Layer | Complete | Fetch and normalize OHLCV data across asset classes |
-| M2: Indicator Library | Complete | Parameterized MA, RSI, MACD, volume, structure, levels |
+| M2: Indicator Library | Complete | MA/ATR/VIDYA, RSI/MACD, oscillators, trend signals, structure, levels |
 | M3: Signal Engine | Planned | 3-condition entry check with scoring |
 | M4: Backtester | Planned | Historical replay with walk-forward splits |
 | M5: Grid Runner | Planned | Parameter optimization across combinations |
@@ -83,31 +83,38 @@ results = dm.get_multiple(["AAPL", "MSFT", "NVDA"], Timeframe.DAILY)
 
 ```python
 from trade_analysis.indicators import (
-    add_sma, add_ema, add_rsi, add_macd,
+    add_sma, add_ema, add_hma, add_zlema, add_vidya, add_atr,
+    add_rsi, add_macd,
     detect_swing_highs, detect_swing_lows,
     detect_volume_spike, detect_pivot_levels,
     detect_round_numbers, find_nearest_level,
+    add_two_pole_oscillator, add_momentum_bias_index,
+    add_zero_lag_trend_signals, add_volumatic_vidya,
 )
 
-# Add trend indicators
+# Trend indicators (SMA, EMA, HMA, ZLEMA, VIDYA, ATR)
 df = add_sma(df, period=50)
 df = add_ema(df, period=21)
+df = add_zlema(df, period=70)
+df = add_vidya(df, length=10, momentum_period=20)
+df = add_atr(df, period=14)
 
-# Add momentum indicators
+# Momentum indicators
 df = add_rsi(df, period=14)
 df = add_macd(df)
 
-# Detect swing structure
+# Oscillators (from TradingView community indicators)
+df = add_two_pole_oscillator(df, filter_length=15)
+df = add_momentum_bias_index(df, momentum_length=10)
+
+# Composite trend signal systems
+df = add_zero_lag_trend_signals(df, length=70, multiplier=1.2)
+df = add_volumatic_vidya(df, vidya_length=10, band_distance=2.0)
+
+# Structure + volume + levels
 df = detect_swing_highs(df, lookback=5)
-df = detect_swing_lows(df, lookback=5)
-
-# Volume analysis
 df = detect_volume_spike(df, period=20, threshold=1.5)
-
-# Key support/resistance levels
 levels = detect_pivot_levels(df, lookback=5)
-round_levels = detect_round_numbers(df["close"].iloc[-1])
-nearest = find_nearest_level(df["close"].iloc[-1], levels)
 ```
 
 ### CLI smoke test
@@ -121,7 +128,7 @@ python -m scripts.fetch_sample AAPL Daily --inverse
 ## Running Tests
 
 ```bash
-pytest tests/ -v         # 148 tests
+pytest tests/ -v         # 194 tests
 pytest tests/ -v --cov   # With coverage
 ```
 
@@ -132,5 +139,5 @@ pytest tests/ -v --cov   # With coverage
 - **Stocks/ETFs/Metals**: yfinance
 - **Crypto**: CCXT
 - **Database**: Supabase (PostgreSQL)
-- **Indicators**: pandas-ta (SMA, EMA, RSI, MACD)
+- **Indicators**: pandas-ta + custom (SMA, EMA, HMA, ZLEMA, VIDYA, ATR, RSI, MACD, oscillators, trend signals)
 - **Config**: YAML + python-dotenv for secrets
