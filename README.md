@@ -12,7 +12,7 @@ The platform is organized into milestones:
 | M2: Indicator Library | Complete | MA/ATR/VIDYA, RSI/MACD, oscillators, trend signals, structure, levels |
 | M3: Signal Engine | Complete | 2-of-3 condition entry, regime filter, scoring (0-6), exit levels |
 | M4: Backtester | Complete | Historical replay with walk-forward splits |
-| M5: Grid Runner | Planned | Parameter optimization across combinations |
+| M5: Grid Runner | Complete | Parameter optimization across combinations |
 | M6: Results Analyzer | Planned | Hypothesis testing + Supabase persistence |
 | M7: Dashboard | Planned | Streamlit results explorer |
 | M8: Live Runner (Paper) | Planned | TradingView webhook integration |
@@ -53,6 +53,7 @@ trade-analysis/
 │   ├── indicators/  # Technical indicators (trend, momentum, structure, volume, levels)
 │   ├── signals/     # Signal engine (regime, conditions, scoring, exits)
 │   ├── backtester/  # Historical replay engine, stats, walk-forward
+│   ├── grid/        # Parameter grid sweep, robustness analysis
 │   └── data_manager.py  # Main orchestrator
 ├── tests/           # pytest test suite
 └── scripts/         # CLI utilities
@@ -181,6 +182,36 @@ for i, split in enumerate(wf_result.splits):
           f"WR={oos_stats['win_rate']:.0%}, avgR={oos_stats['avg_r']:+.2f}")
 ```
 
+### Run parameter grid sweeps
+
+```python
+from trade_analysis.grid import (
+    GridRunner, load_grid_config,
+    analyze_robustness, find_robust_zones,
+)
+from trade_analysis.backtester import load_backtest_config
+from trade_analysis.signals import load_signal_config
+
+# Load configs
+grid_config = load_grid_config()    # from config/grid.yaml
+bt_config = load_backtest_config()
+signal_config = load_signal_config()
+
+# Run grid sweep (RSI period x MA period)
+runner = GridRunner(grid_config, bt_config, signal_config)
+result = runner.run(df)  # df = raw OHLCV DataFrame
+
+# View ranked results
+print(result.format_report())
+top_5 = result.top_n(5)
+
+# Robustness analysis — find stable parameter zones
+zones = find_robust_zones(result.sufficient_only(), metric="total_r")
+for param, param_zones in zones.items():
+    for zone in param_zones:
+        print(f"{param}: values {zone['values']} → avg {zone['avg_metric']:.2f}")
+```
+
 ### CLI smoke test
 
 ```bash
@@ -206,4 +237,5 @@ pytest tests/ -v --cov   # With coverage
 - **Indicators**: pandas-ta + custom (SMA, EMA, HMA, ZLEMA, VIDYA, ATR, RSI, MACD, oscillators, trend signals)
 - **Signals**: Regime detection, 2-of-3 condition gate, composite scoring, exit levels
 - **Backtester**: Bar-by-bar replay, stop/target/trail exits, walk-forward validation
+- **Grid Runner**: Parameter sweeps, ranked results, robustness zone detection
 - **Config**: YAML + python-dotenv for secrets
