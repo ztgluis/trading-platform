@@ -14,7 +14,7 @@ The platform is organized into milestones:
 | M4: Backtester | Complete | Historical replay with walk-forward splits |
 | M5: Grid Runner | Complete | Parameter optimization across combinations |
 | M6: Results Analyzer | Complete | Hypothesis testing (H1-H5) + Supabase persistence |
-| M7: Dashboard | Planned | Streamlit results explorer |
+| M7: Dashboard | Complete | Streamlit results explorer with heatmaps, hypothesis cards, robustness analysis |
 | M8: Live Runner (Paper) | Planned | TradingView webhook integration |
 | M9: Live Runner (Real) | Planned | Schwab API execution |
 
@@ -55,6 +55,7 @@ trade-analysis/
 │   ├── backtester/  # Historical replay engine, stats, walk-forward
 │   ├── grid/        # Parameter grid sweep, robustness analysis
 │   ├── analyzer/    # Hypothesis evaluators (H1-H5), Supabase persistence
+│   ├── dashboard/   # Streamlit dashboard (overview, grid results, hypotheses, robustness, trades)
 │   └── data_manager.py  # Main orchestrator
 ├── tests/           # pytest test suite
 └── scripts/         # CLI utilities
@@ -239,6 +240,26 @@ run_id = persist_grid_run(sb, grid_config, result)
 persist_hypothesis_results(sb, hypotheses, grid_run_id=run_id)
 ```
 
+### Launch the dashboard
+
+```bash
+# Install dashboard dependencies
+pip install -e ".[dashboard]"
+
+# Run the dashboard
+streamlit run src/trade_analysis/dashboard/app.py
+```
+
+The dashboard provides 6 pages:
+- **Overview** — key metrics, distributions, top 5 results
+- **Grid Results** — ranked table, parameter heatmaps, radar comparison
+- **Hypotheses** — H1-H5 verdict cards with evidence
+- **Robustness** — parameter stability charts and zone analysis
+- **Trades** — breakdown by regime/direction/exit reason/score
+- **Fresh Sweep** — run a new parameter sweep from the UI
+
+Data loads from Supabase (if configured) or can be generated via Fresh Sweep.
+
 ### CLI smoke test
 
 ```bash
@@ -250,7 +271,7 @@ python -m scripts.fetch_sample AAPL Daily --inverse
 ## Running Tests
 
 ```bash
-pytest tests/ -v         # 580 tests
+pytest tests/ -v         # 620 tests
 pytest tests/ -v --cov   # With coverage
 ```
 
@@ -266,4 +287,5 @@ pytest tests/ -v --cov   # With coverage
 - **Backtester**: Bar-by-bar replay, stop/target/trail exits, walk-forward validation
 - **Grid Runner**: Parameter sweeps, ranked results, robustness zone detection
 - **Analyzer**: H1-H5 hypothesis evaluators, Supabase persistence (optional)
+- **Dashboard**: Streamlit + Plotly (interactive charts, heatmaps, radar comparisons)
 - **Config**: YAML + python-dotenv for secrets
