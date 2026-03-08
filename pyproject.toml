@@ -21,6 +21,10 @@ dev = [
     "mypy>=1.8",
     "pandas-stubs>=2.2",
 ]
+dashboard = [
+    "streamlit>=1.36",
+    "plotly>=5.20",
+]
 
 [build-system]
 requires = ["setuptools>=69.0"]
