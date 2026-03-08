@@ -15,7 +15,7 @@ The platform is organized into milestones:
 | M5: Grid Runner | Complete | Parameter optimization across combinations |
 | M6: Results Analyzer | Complete | Hypothesis testing (H1-H5) + Supabase persistence |
 | M7: Dashboard | Complete | Streamlit results explorer with heatmaps, hypothesis cards, robustness analysis |
-| M8: Live Runner (Paper) | Planned | TradingView webhook integration |
+| M8: Live Runner (Paper) | Complete | TradingView webhook → signal engine → Supabase persistence |
 | M9: Live Runner (Real) | Planned | Schwab API execution |
 
 ## Setup
@@ -37,6 +37,30 @@ cp .env.example .env
 # Edit .env with your actual API keys
 ```
 
+## Database Setup (Supabase)
+
+The platform uses Supabase (PostgreSQL) for persistence. It works without Supabase too — all DB features degrade gracefully to in-memory mode.
+
+1. Create a free project at [supabase.com](https://supabase.com)
+2. Run the migration scripts in order via the Supabase SQL editor:
+
+```bash
+db/migrations/
+├── 001_initial_schema.sql    # Base tables (symbols, OHLCV cache)
+├── 002_signal_engine.sql     # Signals table (used by live runner)
+├── 003_backtest_results.sql  # Backtest trade logs
+├── 004_grid_results.sql      # Grid sweep results + parameters
+└── 005_hypothesis_results.sql # H1-H5 evaluation results
+```
+
+3. Set environment variables in `.env`:
+
+```bash
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_KEY=your-anon-key
+WEBHOOK_SECRET=your-shared-secret   # For live runner auth
+```
+
 ## Project Structure
 
 ```
@@ -55,7 +79,8 @@ trade-analysis/
 │   ├── backtester/  # Historical replay engine, stats, walk-forward
 │   ├── grid/        # Parameter grid sweep, robustness analysis
 │   ├── analyzer/    # Hypothesis evaluators (H1-H5), Supabase persistence
-│   ├── dashboard/   # Streamlit dashboard (overview, grid results, hypotheses, robustness, trades)
+│   ├── dashboard/   # Streamlit dashboard (overview, grid results, hypotheses, robustness, trades, live signals)
+│   ├── live/        # FastAPI live webhook runner (TradingView → signal engine → Supabase)
 │   └── data_manager.py  # Main orchestrator
 ├── tests/           # pytest test suite
 └── scripts/         # CLI utilities
@@ -250,15 +275,61 @@ pip install -e ".[dashboard]"
 streamlit run src/trade_analysis/dashboard/app.py
 ```
 
-The dashboard provides 6 pages:
+The dashboard provides 7 pages:
 - **Overview** — key metrics, distributions, top 5 results
 - **Grid Results** — ranked table, parameter heatmaps, radar comparison
 - **Hypotheses** — H1-H5 verdict cards with evidence
 - **Robustness** — parameter stability charts and zone analysis
 - **Trades** — breakdown by regime/direction/exit reason/score
 - **Fresh Sweep** — run a new parameter sweep from the UI
+- **Live Signals** — recent signals from the live webhook runner
 
 Data loads from Supabase (if configured) or can be generated via Fresh Sweep.
+
+### Live Runner (Paper)
+
+The live runner is a FastAPI webhook server that receives TradingView alerts,
+runs the signal engine on fresh OHLCV data, and persists tradeable signals to Supabase.
+
+```bash
+# Install live runner dependencies
+pip install -e ".[live]"
+
+# Set environment variables
+export WEBHOOK_SECRET="your-shared-secret"
+export SUPABASE_URL="https://your-project.supabase.co"
+export SUPABASE_KEY="your-anon-key"
+
+# Run locally
+uvicorn src.trade_analysis.live.app:app --reload
+
+# Or deploy to Railway (uses Procfile)
+```
+
+**Endpoints:**
+- `GET /health` — status check with Supabase connectivity and symbol count
+- `POST /webhook` — receive TradingView alerts
+
+**Webhook payload (from TradingView):**
+```json
+{
+  "secret": "your-shared-secret",
+  "symbol": "AAPL",
+  "timeframe": "Daily",
+  "action": "scan"
+}
+```
+
+**TradingView alert setup:**
+1. Create an alert on your TradingView chart
+2. Set the webhook URL to your deployed server (e.g. `https://your-app.up.railway.app/webhook`)
+3. Set the alert message to the JSON payload above
+4. The server validates the secret, fetches fresh OHLCV data, runs the signal engine, and persists tradeable signals to Supabase
+
+**Railway deployment:**
+1. Connect your GitHub repo to Railway
+2. Set `WEBHOOK_SECRET`, `SUPABASE_URL`, and `SUPABASE_KEY` environment variables
+3. Railway auto-detects the `Procfile` and deploys
 
 ### CLI smoke test
 
@@ -271,7 +342,7 @@ python -m scripts.fetch_sample AAPL Daily --inverse
 ## Running Tests
 
 ```bash
-pytest tests/ -v         # 620 tests
+pytest tests/ -v         # 658 tests
 pytest tests/ -v --cov   # With coverage
 ```
 
@@ -288,4 +359,6 @@ pytest tests/ -v --cov   # With coverage
 - **Grid Runner**: Parameter sweeps, ranked results, robustness zone detection
 - **Analyzer**: H1-H5 hypothesis evaluators, Supabase persistence (optional)
 - **Dashboard**: Streamlit + Plotly (interactive charts, heatmaps, radar comparisons)
+- **Live Runner**: FastAPI + Uvicorn (TradingView webhook → signal engine → Supabase)
+- **Deployment**: Railway (Procfile-based)
 - **Config**: YAML + python-dotenv for secrets
