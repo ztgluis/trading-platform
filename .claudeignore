@@ -1,0 +1,41 @@
+# Virtual environment (777MB, 9000+ compiled files)
+.venv/
+venv/
+env/
+
+# Python cache/compiled
+__pycache__/
+*.pyc
+*.pyo
+*.py[cod]
+*$py.class
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Test/lint cache
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Data cache (regenerated at runtime)
+data/cache/
+data/*.parquet
+data/*.json
+
+# Binary docs (can't be read as text)
+docs/*.docx
+
+# Notebooks (empty placeholder)
+notebooks/
+
+# IDE / OS
+.vscode/
+.idea/
+.DS_Store
+*.swp
+*.swo
+*~
