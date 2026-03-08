@@ -1,0 +1,14 @@
+live:
+  # Webhook authentication — set WEBHOOK_SECRET in .env
+  webhook_secret_env_var: "${WEBHOOK_SECRET}"
+
+  # Server settings (overridden by Railway's PORT env var)
+  host: "0.0.0.0"
+  port: 8000
+
+  # Logging
+  log_level: "info"
+
+  # Signal persistence
+  persist_all_signals: false    # true = persist even non-tradeable signals
+  force_refresh_ohlcv: true     # always fetch fresh data on webhook
