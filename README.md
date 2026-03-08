@@ -13,7 +13,7 @@ The platform is organized into milestones:
 | M3: Signal Engine | Complete | 2-of-3 condition entry, regime filter, scoring (0-6), exit levels |
 | M4: Backtester | Complete | Historical replay with walk-forward splits |
 | M5: Grid Runner | Complete | Parameter optimization across combinations |
-| M6: Results Analyzer | Planned | Hypothesis testing + Supabase persistence |
+| M6: Results Analyzer | Complete | Hypothesis testing (H1-H5) + Supabase persistence |
 | M7: Dashboard | Planned | Streamlit results explorer |
 | M8: Live Runner (Paper) | Planned | TradingView webhook integration |
 | M9: Live Runner (Real) | Planned | Schwab API execution |
@@ -54,6 +54,7 @@ trade-analysis/
 │   ├── signals/     # Signal engine (regime, conditions, scoring, exits)
 │   ├── backtester/  # Historical replay engine, stats, walk-forward
 │   ├── grid/        # Parameter grid sweep, robustness analysis
+│   ├── analyzer/    # Hypothesis evaluators (H1-H5), Supabase persistence
 │   └── data_manager.py  # Main orchestrator
 ├── tests/           # pytest test suite
 └── scripts/         # CLI utilities
@@ -212,6 +213,32 @@ for param, param_zones in zones.items():
         print(f"{param}: values {zone['values']} → avg {zone['avg_metric']:.2f}")
 ```
 
+### Analyze grid results (hypothesis testing)
+
+```python
+from trade_analysis.analyzer import (
+    evaluate_all, format_hypothesis_report,
+    SupabaseClient, persist_grid_run, persist_hypothesis_results,
+)
+
+# Evaluate hypotheses H1-H5 on grid results
+grid_df = result.to_dataframe()  # from GridResult
+hypotheses = evaluate_all(grid_df)
+
+# Print formatted report
+print(format_hypothesis_report(hypotheses))
+# [+] H1 SUPPORTED: Trend filter improves avg R by +0.15. Best period: 30.
+# [-] H2 REFUTED: MA type has negligible impact (spread=0.012).
+# [+] H3 SUPPORTED: Best period: 30 (avg R=+0.25, robust).
+# [~] H4 NOT_TESTABLE: Cannot test — crossover not implemented.
+# [+] H5 SUPPORTED: Higher rsi_bull_threshold improves win rate by +8.5%.
+
+# Optional: persist to Supabase (skips gracefully if not configured)
+sb = SupabaseClient()
+run_id = persist_grid_run(sb, grid_config, result)
+persist_hypothesis_results(sb, hypotheses, grid_run_id=run_id)
+```
+
 ### CLI smoke test
 
 ```bash
@@ -238,4 +265,5 @@ pytest tests/ -v --cov   # With coverage
 - **Signals**: Regime detection, 2-of-3 condition gate, composite scoring, exit levels
 - **Backtester**: Bar-by-bar replay, stop/target/trail exits, walk-forward validation
 - **Grid Runner**: Parameter sweeps, ranked results, robustness zone detection
+- **Analyzer**: H1-H5 hypothesis evaluators, Supabase persistence (optional)
 - **Config**: YAML + python-dotenv for secrets
