@@ -1,0 +1,27 @@
+grid:
+  # Target symbol and asset configuration
+  target:
+    symbol: "AAPL"
+    asset_class: "stock"
+    timeframe: "Daily"
+
+  # Minimum trades for a result to be considered valid
+  min_trades: 30
+
+  # Metric to rank results by (total_r, avg_r, profit_factor, win_rate)
+  rank_by: "total_r"
+
+  # Parameters to sweep — each key maps to a list of values
+  # Direct SignalEngineConfig fields:
+  #   rsi_period, regime_ma_period, atr_period, macd_fast, macd_slow,
+  #   macd_signal, rsi_bull_threshold, rsi_bear_threshold,
+  #   volume_sma_period, volume_spike_threshold, tradeable_threshold,
+  #   atr_stop_multiplier, swing_lookback, level_proximity_pct,
+  #   pivot_lookback, pivot_merge_distance_pct
+  #
+  # Bucket-specific fields (applied to active bucket for the asset_class):
+  #   trend_ma_period, trend_ma_type, target_r_multiple,
+  #   trail_breakeven_r, max_hold_weeks
+  parameters:
+    rsi_period: [10, 12, 14, 16, 18, 20]
+    trend_ma_period: [10, 20, 30, 40, 50]
