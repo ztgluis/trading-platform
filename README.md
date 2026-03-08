@@ -11,7 +11,7 @@ The platform is organized into milestones:
 | M1: Data Layer | Complete | Fetch and normalize OHLCV data across asset classes |
 | M2: Indicator Library | Complete | MA/ATR/VIDYA, RSI/MACD, oscillators, trend signals, structure, levels |
 | M3: Signal Engine | Complete | 2-of-3 condition entry, regime filter, scoring (0-6), exit levels |
-| M4: Backtester | Planned | Historical replay with walk-forward splits |
+| M4: Backtester | Complete | Historical replay with walk-forward splits |
 | M5: Grid Runner | Planned | Parameter optimization across combinations |
 | M6: Results Analyzer | Planned | Hypothesis testing + Supabase persistence |
 | M7: Dashboard | Planned | Streamlit results explorer |
@@ -52,6 +52,7 @@ trade-analysis/
 │   ├── transforms/  # Normalize, timeframe aggregation, inverse
 │   ├── indicators/  # Technical indicators (trend, momentum, structure, volume, levels)
 │   ├── signals/     # Signal engine (regime, conditions, scoring, exits)
+│   ├── backtester/  # Historical replay engine, stats, walk-forward
 │   └── data_manager.py  # Main orchestrator
 ├── tests/           # pytest test suite
 └── scripts/         # CLI utilities
@@ -141,6 +142,45 @@ regime_df = detect_regime(df, ma_type="sma", ma_period=200)
 print(regime_df[["close", "regime", "regime_distance_pct"]])
 ```
 
+### Run backtests
+
+```python
+from trade_analysis.backtester import (
+    Backtester, BacktestConfig, load_backtest_config,
+    compute_backtest_stats, format_stats_report,
+    run_walk_forward,
+)
+from trade_analysis.signals import generate_signals, load_signal_config
+
+# Load configs
+bt_config = load_backtest_config()  # from config/backtest.yaml
+signal_config = load_signal_config()
+
+# Generate signals on OHLCV data
+enriched = generate_signals(df, asset_class="stock", config=signal_config)
+
+# Run backtest
+backtester = Backtester(bt_config, signal_config)
+result = backtester.run(enriched, "AAPL", "stock", "Daily")
+
+# Summary statistics
+stats = compute_backtest_stats(result)
+print(format_stats_report(stats))
+
+# Trade log as DataFrame
+trade_log = result.to_dataframe()
+print(trade_log[["entry_timestamp", "exit_reason", "pnl_r", "duration_bars"]])
+
+# Walk-forward validation
+wf_result = run_walk_forward(
+    enriched, "AAPL", "stock", "Daily", bt_config, signal_config
+)
+for i, split in enumerate(wf_result.splits):
+    oos_stats = compute_backtest_stats(wf_result.out_of_sample_results[i])
+    print(f"Fold {i} OOS: {oos_stats['total_trades']} trades, "
+          f"WR={oos_stats['win_rate']:.0%}, avgR={oos_stats['avg_r']:+.2f}")
+```
+
 ### CLI smoke test
 
 ```bash
@@ -152,7 +192,7 @@ python -m scripts.fetch_sample AAPL Daily --inverse
 ## Running Tests
 
 ```bash
-pytest tests/ -v         # 333 tests
+pytest tests/ -v         # 449 tests
 pytest tests/ -v --cov   # With coverage
 ```
 
@@ -165,4 +205,5 @@ pytest tests/ -v --cov   # With coverage
 - **Database**: Supabase (PostgreSQL)
 - **Indicators**: pandas-ta + custom (SMA, EMA, HMA, ZLEMA, VIDYA, ATR, RSI, MACD, oscillators, trend signals)
 - **Signals**: Regime detection, 2-of-3 condition gate, composite scoring, exit levels
+- **Backtester**: Bar-by-bar replay, stop/target/trail exits, walk-forward validation
 - **Config**: YAML + python-dotenv for secrets
