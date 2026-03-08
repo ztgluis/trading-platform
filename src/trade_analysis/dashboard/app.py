@@ -23,6 +23,7 @@ from trade_analysis.dashboard.pages import (
     fresh_sweep,
     grid_results,
     hypotheses,
+    live_signals,
     overview,
     robustness,
     trades,
@@ -91,6 +92,7 @@ PAGES = {
     "Robustness": robustness,
     "Trades": trades,
     "Fresh Sweep": fresh_sweep,
+    "Live Signals": live_signals,
 }
 
 page_name = st.sidebar.radio("Page", list(PAGES.keys()))

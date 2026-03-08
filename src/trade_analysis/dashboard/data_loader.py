@@ -138,6 +138,36 @@ def load_backtest_trades(run_id: int) -> pd.DataFrame:
 
 
 # ---------------------------------------------------------------------------
+# Live signals
+# ---------------------------------------------------------------------------
+
+
+@st.cache_data(ttl=60)
+def load_signals(
+    limit: int = 50,
+    symbol: str | None = None,
+    tradeable_only: bool = False,
+) -> pd.DataFrame:
+    """Load recent signals from the signals table.
+
+    Shorter TTL (60s) for near-real-time display.
+    """
+    sb = get_supabase_client()
+    if not sb.enabled:
+        return pd.DataFrame()
+
+    query = sb.client.table("signals").select("*").order("created_at", desc=True).limit(limit)
+
+    if symbol:
+        query = query.eq("symbol", symbol)
+    if tradeable_only:
+        query = query.eq("signal_tradeable", True)
+
+    response = query.execute()
+    return pd.DataFrame(response.data) if response.data else pd.DataFrame()
+
+
+# ---------------------------------------------------------------------------
 # Fresh sweep (in-memory fallback)
 # ---------------------------------------------------------------------------
 
