@@ -35,3 +35,7 @@ class OHLCVValidationError(TradeAnalysisError):
 
 class CacheError(TradeAnalysisError):
     """Cache read/write failure."""
+
+
+class BacktestError(TradeAnalysisError):
+    """Backtester runtime error: invalid data, position logic failure."""
