@@ -250,7 +250,7 @@ python -m scripts.fetch_sample AAPL Daily --inverse
 ## Running Tests
 
 ```bash
-pytest tests/ -v         # 524 tests
+pytest tests/ -v         # 580 tests
 pytest tests/ -v --cov   # With coverage
 ```
 
