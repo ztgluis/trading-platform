@@ -39,3 +39,27 @@ class CacheError(TradeAnalysisError):
 
 class BacktestError(TradeAnalysisError):
     """Backtester runtime error: invalid data, position logic failure."""
+
+
+class ExecutionError(TradeAnalysisError):
+    """Base for all order execution errors."""
+
+
+class OrderRejectedError(ExecutionError):
+    """Broker rejected the order (insufficient funds, invalid symbol, etc.)."""
+
+
+class KillSwitchEngagedError(ExecutionError):
+    """Action blocked because the kill switch is engaged."""
+
+
+class PositionLimitError(ExecutionError):
+    """At max open positions or per-symbol limit."""
+
+
+class SchwabConnectionError(ExecutionError):
+    """Cannot connect to Schwab API."""
+
+
+class SchwabTokenExpiredError(SchwabConnectionError):
+    """Schwab OAuth refresh token has expired (7-day limit)."""
