@@ -12,3 +12,11 @@ live:
   # Signal persistence
   persist_all_signals: false    # true = persist even non-tradeable signals
   force_refresh_ohlcv: true     # always fetch fresh data on webhook
+
+  # Execution settings (M9)
+  execution:
+    dry_run: true                # true = simulate orders, false = real Schwab execution
+    max_positions: 5             # max total open positions
+    max_per_symbol: 1            # max positions per symbol
+    proposal_expiry_hours: 24    # auto-expire pending proposals after this many hours
+    default_order_type: "market" # "market" or "limit"
