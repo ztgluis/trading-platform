@@ -20,6 +20,7 @@ from trade_analysis.dashboard.data_loader import (
     load_grid_runs,
 )
 from trade_analysis.dashboard.pages import (
+    execution,
     fresh_sweep,
     grid_results,
     hypotheses,
@@ -93,6 +94,7 @@ PAGES = {
     "Trades": trades,
     "Fresh Sweep": fresh_sweep,
     "Live Signals": live_signals,
+    "Execution": execution,
 }
 
 page_name = st.sidebar.radio("Page", list(PAGES.keys()))

@@ -168,6 +168,82 @@ def load_signals(
 
 
 # ---------------------------------------------------------------------------
+# Execution (M9)
+# ---------------------------------------------------------------------------
+
+
+@st.cache_data(ttl=30)
+def load_pending_proposals() -> pd.DataFrame:
+    """Load pending order proposals. Short TTL for near-real-time."""
+    sb = get_supabase_client()
+    if not sb.enabled:
+        return pd.DataFrame()
+
+    response = (
+        sb.client.table("order_proposals")
+        .select("*")
+        .eq("status", "pending_approval")
+        .order("created_at", desc=True)
+        .execute()
+    )
+    return pd.DataFrame(response.data) if response.data else pd.DataFrame()
+
+
+@st.cache_data(ttl=30)
+def load_open_positions() -> pd.DataFrame:
+    """Load open (unclosed) positions."""
+    sb = get_supabase_client()
+    if not sb.enabled:
+        return pd.DataFrame()
+
+    response = (
+        sb.client.table("live_positions")
+        .select("*")
+        .is_("closed_at", "null")
+        .order("opened_at", desc=True)
+        .execute()
+    )
+    return pd.DataFrame(response.data) if response.data else pd.DataFrame()
+
+
+@st.cache_data(ttl=60)
+def load_recent_orders(limit: int = 50) -> pd.DataFrame:
+    """Load recent orders."""
+    sb = get_supabase_client()
+    if not sb.enabled:
+        return pd.DataFrame()
+
+    response = (
+        sb.client.table("orders")
+        .select("*")
+        .order("placed_at", desc=True)
+        .limit(limit)
+        .execute()
+    )
+    return pd.DataFrame(response.data) if response.data else pd.DataFrame()
+
+
+@st.cache_data(ttl=30)
+def get_kill_switch_status() -> bool:
+    """Get current kill switch state."""
+    sb = get_supabase_client()
+    if not sb.enabled:
+        return False
+
+    response = (
+        sb.client.table("kill_switch")
+        .select("enabled")
+        .order("toggled_at", desc=True)
+        .limit(1)
+        .execute()
+    )
+
+    if response.data:
+        return response.data[0].get("enabled", False)
+    return False
+
+
+# ---------------------------------------------------------------------------
 # Fresh sweep (in-memory fallback)
 # ---------------------------------------------------------------------------
 
