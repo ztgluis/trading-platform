@@ -13,6 +13,9 @@ from fastapi import FastAPI
 from trade_analysis.analyzer.persistence import SupabaseClient
 from trade_analysis.config.loader import load_symbols
 from trade_analysis.data_manager import DataManager
+from trade_analysis.execution.executor import OrderExecutor
+from trade_analysis.execution.risk_manager import RiskManager
+from trade_analysis.execution.schwab_client import SchwabClient
 from trade_analysis.live.config import load_live_config
 from trade_analysis.signals import load_signal_config
 
@@ -31,9 +34,18 @@ async def lifespan(app: FastAPI):
     app.state.signal_config = load_signal_config()
     app.state.symbols = load_symbols()
 
+    # Initialize execution components (M9)
+    schwab = SchwabClient(dry_run=config.execution.dry_run)
+    schwab.connect()
+    risk = RiskManager(config.execution, app.state.supabase)
+    app.state.executor = OrderExecutor(schwab, risk, app.state.supabase)
+
     logger.info("Live runner started on %s:%d", config.host, config.port)
     logger.info("Supabase: %s", "connected" if app.state.supabase.enabled else "disabled")
     logger.info("Symbols configured: %d", len(app.state.symbols))
+    logger.info(
+        "Execution: %s", "DRY RUN" if config.execution.dry_run else "LIVE"
+    )
 
     yield
 
