@@ -16,7 +16,7 @@ The platform is organized into milestones:
 | M6: Results Analyzer | Complete | Hypothesis testing (H1-H5) + Supabase persistence |
 | M7: Dashboard | Complete | Streamlit results explorer with heatmaps, hypothesis cards, robustness analysis |
 | M8: Live Runner (Paper) | Complete | TradingView webhook → signal engine → Supabase persistence |
-| M9: Live Runner (Real) | Planned | Schwab API execution |
+| M9: Live Runner (Real) | Complete | Schwab API execution with manual approval + dry-run mode |
 
 ## Setup
 
@@ -50,7 +50,8 @@ db/migrations/
 ├── 002_signal_engine.sql     # Signals table (used by live runner)
 ├── 003_backtest_results.sql  # Backtest trade logs
 ├── 004_grid_results.sql      # Grid sweep results + parameters
-└── 005_hypothesis_results.sql # H1-H5 evaluation results
+├── 005_hypothesis_results.sql # H1-H5 evaluation results
+└── 006_execution.sql          # Order proposals, orders, fills, positions, kill switch
 ```
 
 3. Set environment variables in `.env`:
@@ -79,8 +80,9 @@ trade-analysis/
 │   ├── backtester/  # Historical replay engine, stats, walk-forward
 │   ├── grid/        # Parameter grid sweep, robustness analysis
 │   ├── analyzer/    # Hypothesis evaluators (H1-H5), Supabase persistence
-│   ├── dashboard/   # Streamlit dashboard (overview, grid results, hypotheses, robustness, trades, live signals)
+│   ├── dashboard/   # Streamlit dashboard (8 pages incl. execution management)
 │   ├── live/        # FastAPI live webhook runner (TradingView → signal engine → Supabase)
+│   ├── execution/   # Schwab API execution (dry-run/live), risk manager, order lifecycle
 │   └── data_manager.py  # Main orchestrator
 ├── tests/           # pytest test suite
 └── scripts/         # CLI utilities
@@ -275,7 +277,7 @@ pip install -e ".[dashboard]"
 streamlit run src/trade_analysis/dashboard/app.py
 ```
 
-The dashboard provides 7 pages:
+The dashboard provides 8 pages:
 - **Overview** — key metrics, distributions, top 5 results
 - **Grid Results** — ranked table, parameter heatmaps, radar comparison
 - **Hypotheses** — H1-H5 verdict cards with evidence
@@ -283,6 +285,7 @@ The dashboard provides 7 pages:
 - **Trades** — breakdown by regime/direction/exit reason/score
 - **Fresh Sweep** — run a new parameter sweep from the UI
 - **Live Signals** — recent signals from the live webhook runner
+- **Execution** — order proposals, open positions, kill switch, recent orders
 
 Data loads from Supabase (if configured) or can be generated via Fresh Sweep.
 
@@ -331,6 +334,38 @@ uvicorn src.trade_analysis.live.app:app --reload
 2. Set `WEBHOOK_SECRET`, `SUPABASE_URL`, and `SUPABASE_KEY` environment variables
 3. Railway auto-detects the `Procfile` and deploys
 
+### Live Runner (Real) — Schwab Execution
+
+The live runner includes order execution via Schwab API with a manual approval workflow.
+Dry-run mode (default) simulates execution when Schwab credentials aren't configured.
+
+**Execution flow:**
+1. TradingView webhook fires a tradeable signal
+2. Signal engine creates an **order proposal** (pending approval)
+3. User reviews proposals in the dashboard or via API
+4. On approval, order is placed via Schwab API (or simulated in dry-run mode)
+5. Fill and position records are persisted to Supabase
+
+**Execution endpoints:**
+- `GET /proposals` — list pending proposals
+- `POST /proposals/{id}/approve` — approve with qty and order type
+- `POST /proposals/{id}/reject` — reject a proposal
+- `GET /positions` — list open positions
+- `POST /kill-switch` — toggle kill switch (blocks all proposals/executions)
+- `GET /execution/health` — Schwab client + risk manager status
+
+**Configuration** (`config/live.yaml` execution section):
+- `dry_run: true` — simulate orders (default, no Schwab credentials needed)
+- `max_positions: 5` — max concurrent open positions
+- `max_per_symbol: 1` — max positions per symbol
+- `proposal_expiry_hours: 24` — auto-expire stale proposals
+
+**Schwab API setup** (for live mode):
+1. Create a Schwab developer account at developer.schwab.com
+2. Register an app to get API key + secret
+3. Set environment variables: `SCHWAB_API_KEY`, `SCHWAB_API_SECRET`, `SCHWAB_REDIRECT_URI`
+4. Set `execution.dry_run: false` in `config/live.yaml`
+
 ### CLI smoke test
 
 ```bash
@@ -342,7 +377,7 @@ python -m scripts.fetch_sample AAPL Daily --inverse
 ## Running Tests
 
 ```bash
-pytest tests/ -v         # 658 tests
+pytest tests/ -v         # 763 tests
 pytest tests/ -v --cov   # With coverage
 ```
 
@@ -360,5 +395,6 @@ pytest tests/ -v --cov   # With coverage
 - **Analyzer**: H1-H5 hypothesis evaluators, Supabase persistence (optional)
 - **Dashboard**: Streamlit + Plotly (interactive charts, heatmaps, radar comparisons)
 - **Live Runner**: FastAPI + Uvicorn (TradingView webhook → signal engine → Supabase)
+- **Execution**: schwab-py (Schwab API), dry-run simulation, risk manager, manual approval workflow
 - **Deployment**: Railway (Procfile-based)
 - **Config**: YAML + python-dotenv for secrets

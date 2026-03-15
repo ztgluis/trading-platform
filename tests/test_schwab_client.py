@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -96,6 +97,7 @@ class TestDryRunMode:
 
 
 class TestCredentials:
+    @patch.dict(os.environ, {}, clear=True)
     def test_no_credentials_by_default(self):
         client = SchwabClient(dry_run=False)
         assert client.has_credentials is False

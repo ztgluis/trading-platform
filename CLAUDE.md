@@ -13,7 +13,7 @@ Personal swing trading platform for systematic strategy validation and live sign
 - M6 Results Analyzer — Complete
 - M7 Streamlit Dashboard — Complete
 - M8 Live Runner (Paper) — Complete
-- M9 Live Runner (Real) — Planned (Schwab API execution)
+- M9 Live Runner (Real) — Complete (Schwab API execution, dry-run default, manual approval)
 
 **PRD:** Full product requirements in `docs/swing_trading_prd.docx` (binary .docx — use `textutil -convert txt -stdout docs/swing_trading_prd.docx` on macOS to read). Contains 21 hypotheses (H1–H21), strategy rules, overfitting safeguards.
 
@@ -51,8 +51,9 @@ src/trade_analysis/
 ├── backtester/   # Bar-by-bar replay, stop/target/trail exits, walk-forward validation
 ├── grid/         # Parameter sweeps, GridResult (rank/top_n/sufficient_only), robustness zones
 ├── analyzer/     # H1-H5 hypothesis evaluators, SupabaseClient, persistence
-├── dashboard/    # Streamlit + Plotly (7 pages: overview, grid, hypotheses, robustness, trades, fresh sweep, live signals)
-├── live/         # FastAPI webhook: TradingView → signal engine → Supabase
+├── dashboard/    # Streamlit + Plotly (8 pages incl. execution management)
+├── live/         # FastAPI webhook: TradingView → signal engine → execution pipeline
+├── execution/    # Schwab API execution (dry-run/live), risk manager, order lifecycle
 ├── data_manager.py   # Main orchestrator for OHLCV fetching
 └── exceptions.py     # TradeAnalysisError hierarchy
 ```
@@ -64,9 +65,9 @@ src/trade_analysis/
 - `cache.yaml` — TTL, storage path, max age
 - `backtest.yaml` — date ranges, capital, walk-forward params
 - `grid.yaml` — parameter grid definitions
-- `live.yaml` — webhook auth, server, persistence toggle
+- `live.yaml` — webhook auth, server, persistence toggle, execution config (dry_run, limits)
 
-**DB migrations** in `db/migrations/` (001–005): run in Supabase SQL editor in order.
+**DB migrations** in `db/migrations/` (001–006): run in Supabase SQL editor in order.
 
 ## Key Conventions
 
@@ -89,8 +90,17 @@ TradeAnalysisError
 │   └── SymbolNotFoundError
 ├── OHLCVValidationError
 ├── CacheError
-└── BacktestError
+├── BacktestError
+└── ExecutionError
+    ├── OrderRejectedError
+    ├── KillSwitchEngagedError
+    ├── PositionLimitError
+    └── SchwabConnectionError
+        └── SchwabTokenExpiredError
 ```
+
+### Execution pipeline
+Signal → `OrderExecutor.create_proposal()` → pending_approval → user approves via dashboard/API → `OrderExecutor.approve_proposal()` → SchwabClient places order → fill + position persisted. Kill switch and position limits enforced by `RiskManager`. Dry-run mode (default) simulates all Schwab interactions.
 
 ### Test patterns
 - Flat structure in `tests/`, one file per module
