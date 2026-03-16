@@ -9,6 +9,8 @@ from __future__ import annotations
 import pandas as pd
 import plotly.graph_objects as go
 
+from trade_analysis.dashboard.components.labels import col_label
+
 
 # ---------------------------------------------------------------------------
 # Parameter heatmap
@@ -29,22 +31,24 @@ def build_param_heatmap(
     pivot = df.pivot_table(index=param_y, columns=param_x, values=metric, aggfunc="mean")
     pivot = pivot.sort_index(ascending=False)
 
+    lx, ly, lm = col_label(param_x), col_label(param_y), col_label(metric)
+
     fig = go.Figure(
         go.Heatmap(
             z=pivot.values,
             x=[str(v) for v in pivot.columns],
             y=[str(v) for v in pivot.index],
             colorscale="RdYlGn",
-            colorbar=dict(title=metric),
+            colorbar=dict(title=lm),
             hovertemplate=(
-                f"{param_x}: %{{x}}<br>{param_y}: %{{y}}<br>{metric}: %{{z:.3f}}<extra></extra>"
+                f"{lx}: %{{x}}<br>{ly}: %{{y}}<br>{lm}: %{{z:.3f}}<extra></extra>"
             ),
         )
     )
     fig.update_layout(
-        title=f"{metric} by {param_x} vs {param_y}",
-        xaxis_title=param_x,
-        yaxis_title=param_y,
+        title=f"{lm} by {lx} vs {ly}",
+        xaxis_title=lx,
+        yaxis_title=ly,
         height=450,
     )
     return fig
@@ -57,19 +61,20 @@ def build_single_param_bar(
 ) -> go.Figure:
     """Bar chart of a single parameter's average metric values."""
     grouped = df.groupby(param)[metric].mean().sort_index()
+    lp, lm = col_label(param), col_label(metric)
 
     fig = go.Figure(
         go.Bar(
             x=[str(v) for v in grouped.index],
             y=grouped.values,
             marker_color="#2196F3",
-            hovertemplate=f"{param}: %{{x}}<br>{metric}: %{{y:.3f}}<extra></extra>",
+            hovertemplate=f"{lp}: %{{x}}<br>{lm}: %{{y:.3f}}<extra></extra>",
         )
     )
     fig.update_layout(
-        title=f"Average {metric} by {param}",
-        xaxis_title=param,
-        yaxis_title=metric,
+        title=f"Average {lm} by {lp}",
+        xaxis_title=lp,
+        yaxis_title=lm,
         height=400,
     )
     return fig
@@ -86,17 +91,18 @@ def build_distribution_histogram(
     title: str | None = None,
 ) -> go.Figure:
     """Histogram of a metric across all rows."""
+    lm = col_label(metric)
     fig = go.Figure(
         go.Histogram(
             x=df[metric],
             nbinsx=30,
             marker_color="#4CAF50",
-            hovertemplate=f"{metric}: %{{x:.3f}}<br>Count: %{{y}}<extra></extra>",
+            hovertemplate=f"{lm}: %{{x:.3f}}<br>Count: %{{y}}<extra></extra>",
         )
     )
     fig.update_layout(
-        title=title or f"Distribution of {metric}",
-        xaxis_title=metric,
+        title=title or f"Distribution of {lm}",
+        xaxis_title=lm,
         yaxis_title="Count",
         height=350,
     )
@@ -118,6 +124,7 @@ def build_robustness_chart(
     Points are green if robust, red if isolated peak.
     """
     rdf = robustness_df.sort_values("param_value")
+    lp, lm = col_label(param_name), col_label(metric)
 
     colors = [
         "#F44336" if row.get("is_isolated_peak", False)
@@ -133,7 +140,7 @@ def build_robustness_chart(
         x=[str(v) for v in rdf["param_value"]],
         y=rdf["metric_avg"],
         mode="lines+markers",
-        name=metric,
+        name=lm,
         marker=dict(color=colors, size=10),
         line=dict(color="#888"),
     ))
@@ -149,9 +156,9 @@ def build_robustness_chart(
         ))
 
     fig.update_layout(
-        title=f"Robustness: {metric} by {param_name}",
-        xaxis_title=param_name,
-        yaxis_title=metric,
+        title=f"Robustness: {lm} by {lp}",
+        xaxis_title=lp,
+        yaxis_title=lm,
         height=400,
     )
     return fig
@@ -205,19 +212,20 @@ def build_breakdown_bars(
     """
     groups = sorted(breakdown.keys())
     values = [breakdown[g].get(metric, 0) for g in groups]
+    lm = col_label(metric)
 
     fig = go.Figure(
         go.Bar(
             x=groups,
             y=values,
             marker_color="#2196F3",
-            hovertemplate="%{x}<br>" + metric + ": %{y:.3f}<extra></extra>",
+            hovertemplate="%{x}<br>" + lm + ": %{y:.3f}<extra></extra>",
         )
     )
     fig.update_layout(
         title=title,
         xaxis_title="",
-        yaxis_title=metric,
+        yaxis_title=lm,
         height=350,
     )
     return fig
@@ -247,7 +255,7 @@ def build_radar_comparison(
         values = [row.get(m, 0) for m in metrics]
         # Close the polygon
         values.append(values[0])
-        theta = list(metrics) + [metrics[0]]
+        theta = [col_label(m) for m in metrics] + [col_label(metrics[0])]
 
         fig.add_trace(go.Scatterpolar(
             r=values,

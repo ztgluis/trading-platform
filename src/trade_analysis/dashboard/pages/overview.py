@@ -8,6 +8,7 @@ import streamlit as st
 from trade_analysis.dashboard.components.charts import (
     build_distribution_histogram,
 )
+from trade_analysis.dashboard.components.labels import col_label
 from trade_analysis.dashboard.components.metrics import render_metric_row
 
 
@@ -44,7 +45,7 @@ def render(grid_df: pd.DataFrame, run_meta: pd.Series | None) -> None:
                 st.markdown(f"**Timeframe:** {run_meta.get('timeframe', 'N/A')}")
             with col2:
                 st.markdown(f"**Min Trades:** {run_meta.get('min_trades', 30)}")
-                st.markdown(f"**Rank By:** {run_meta.get('rank_by', 'total_r')}")
+                st.markdown(f"**Rank By:** {col_label(run_meta.get('rank_by', 'total_r'))}")
                 created = run_meta.get("created_at", "")
                 if created:
                     st.markdown(f"**Created:** {str(created)[:19]}")
@@ -53,7 +54,7 @@ def render(grid_df: pd.DataFrame, run_meta: pd.Series | None) -> None:
             if params:
                 st.markdown("**Swept Parameters:**")
                 for name, values in params.items():
-                    st.markdown(f"- `{name}`: {values}")
+                    st.markdown(f"- **{col_label(name)}**: {values}")
 
     # ---- Distribution charts ----
     if not sufficient.empty and "total_r" in sufficient.columns:
@@ -75,4 +76,8 @@ def render(grid_df: pd.DataFrame, run_meta: pd.Series | None) -> None:
             if c not in {"id", "run_id", "created_at", "is_robust", "is_isolated_peak"}
         ]
         top5 = grid_df.nlargest(5, "total_r")[display_cols]
-        st.dataframe(top5, use_container_width=True, hide_index=True)
+        st.dataframe(
+            top5.rename(columns=col_label),
+            use_container_width=True,
+            hide_index=True,
+        )

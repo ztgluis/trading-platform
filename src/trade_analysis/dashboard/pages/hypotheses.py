@@ -36,7 +36,7 @@ def _render_evidence(hypothesis_id: str, evidence: dict[str, Any]) -> None:
         if type_groups:
             st.markdown("**By MA Type:**")
             for t, stats in type_groups.items():
-                st.markdown(f"- {t}: avg_r={stats.get('mean', 0):.3f}, n={stats.get('count', 0)}")
+                st.markdown(f"- {t}: Avg R = {stats.get('mean', 0):.3f}, n = {stats.get('count', 0)}")
 
     elif hypothesis_id == "H3":
         col1, col2 = st.columns(2)
@@ -51,7 +51,7 @@ def _render_evidence(hypothesis_id: str, evidence: dict[str, Any]) -> None:
             st.markdown("**Ranking:**")
             for entry in ranking[:10]:
                 st.markdown(
-                    f"- Period {entry.get('period', '?')}: avg_r={entry.get('avg_r', 0):.3f}"
+                    f"- Period {entry.get('period', '?')}: Avg R = {entry.get('avg_r', 0):.3f}"
                 )
 
     elif hypothesis_id == "H5":

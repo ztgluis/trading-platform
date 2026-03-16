@@ -11,6 +11,8 @@ from dataclasses import dataclass, field
 import pandas as pd
 import streamlit as st
 
+from trade_analysis.dashboard.components.labels import col_label
+
 
 # ---------------------------------------------------------------------------
 # Filter state
@@ -59,9 +61,11 @@ def render_sidebar_filters() -> FilterState:
     st.sidebar.markdown("---")
     st.sidebar.subheader("Filters")
 
+    _rank_options = ["total_r", "avg_r", "profit_factor", "win_rate"]
     metric = st.sidebar.selectbox(
         "Rank by",
-        options=["total_r", "avg_r", "profit_factor", "win_rate"],
+        options=_rank_options,
+        format_func=col_label,
         index=0,
     )
 

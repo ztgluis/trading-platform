@@ -76,8 +76,8 @@ class TestParamHeatmap:
 
     def test_heatmap_axes(self, grid_df: pd.DataFrame) -> None:
         fig = build_param_heatmap(grid_df, "rsi_period", "trend_ma_period", "total_r")
-        assert fig.layout.xaxis.title.text == "rsi_period"
-        assert fig.layout.yaxis.title.text == "trend_ma_period"
+        assert fig.layout.xaxis.title.text == "RSI Period"
+        assert fig.layout.yaxis.title.text == "Trend MA Period"
 
     def test_has_heatmap_trace(self, grid_df: pd.DataFrame) -> None:
         fig = build_param_heatmap(grid_df, "rsi_period", "trend_ma_period", "total_r")

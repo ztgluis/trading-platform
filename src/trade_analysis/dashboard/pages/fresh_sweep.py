@@ -5,6 +5,8 @@ from __future__ import annotations
 import pandas as pd
 import streamlit as st
 
+from trade_analysis.dashboard.components.labels import col_label
+
 
 def render(grid_df: pd.DataFrame, run_meta: pd.Series | None) -> None:
     """Render the fresh sweep configuration and execution page."""
@@ -49,9 +51,11 @@ def render(grid_df: pd.DataFrame, run_meta: pd.Series | None) -> None:
         )
 
     min_trades = st.number_input("Min Trades", value=30, min_value=1, key="sweep_min_trades")
+    _rank_options = ["total_r", "avg_r", "profit_factor", "win_rate"]
     rank_by = st.selectbox(
         "Rank By",
-        options=["total_r", "avg_r", "profit_factor", "win_rate"],
+        options=_rank_options,
+        format_func=col_label,
         key="sweep_rank_by",
     )
 

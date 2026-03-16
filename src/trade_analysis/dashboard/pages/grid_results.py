@@ -10,6 +10,7 @@ from trade_analysis.dashboard.components.charts import (
     build_radar_comparison,
     build_single_param_bar,
 )
+from trade_analysis.dashboard.components.labels import col_label
 
 # Columns that are stats (not swept parameters)
 _STAT_COLS = {
@@ -47,6 +48,7 @@ def render(grid_df: pd.DataFrame, run_meta: pd.Series | None) -> None:
     metric = st.selectbox(
         "Rank by metric",
         options=stat_cols,
+        format_func=col_label,
         index=stat_cols.index("total_r") if "total_r" in stat_cols else 0,
         key="grid_metric",
     )
@@ -58,7 +60,7 @@ def render(grid_df: pd.DataFrame, run_meta: pd.Series | None) -> None:
     ranked.index = ranked.index + 1
     ranked.index.name = "Rank"
 
-    st.dataframe(ranked, use_container_width=True)
+    st.dataframe(ranked.rename(columns=col_label), use_container_width=True)
 
     csv = ranked.to_csv()
     st.download_button("Download CSV", csv, "grid_results.csv", "text/csv")
@@ -70,10 +72,14 @@ def render(grid_df: pd.DataFrame, run_meta: pd.Series | None) -> None:
         if len(param_cols) >= 2:
             col1, col2 = st.columns(2)
             with col1:
-                param_x = st.selectbox("X-axis parameter", param_cols, index=0, key="hm_x")
+                param_x = st.selectbox(
+                    "X-axis parameter", param_cols, format_func=col_label, index=0, key="hm_x",
+                )
             with col2:
                 other = [p for p in param_cols if p != param_x]
-                param_y = st.selectbox("Y-axis parameter", other, index=0, key="hm_y")
+                param_y = st.selectbox(
+                    "Y-axis parameter", other, format_func=col_label, index=0, key="hm_y",
+                )
 
             fig = build_param_heatmap(grid_df, param_x, param_y, metric)
             st.plotly_chart(fig, use_container_width=True)
@@ -99,7 +105,7 @@ def render(grid_df: pd.DataFrame, run_meta: pd.Series | None) -> None:
             for rank in selected_ranks:
                 row = ranked.iloc[rank - 1]
                 row_dict = row.to_dict()
-                label_parts = [f"{p}={row[p]}" for p in param_cols if p in row]
+                label_parts = [f"{col_label(p)}={row[p]}" for p in param_cols if p in row]
                 row_dict["_label"] = ", ".join(label_parts)
                 selected_rows.append(row_dict)
 

@@ -6,6 +6,7 @@ import pandas as pd
 import streamlit as st
 
 from trade_analysis.dashboard.components.charts import build_robustness_chart
+from trade_analysis.dashboard.components.labels import col_label
 from trade_analysis.dashboard.pages.grid_results import _detect_param_cols
 
 
@@ -25,11 +26,15 @@ def render(grid_df: pd.DataFrame, run_meta: pd.Series | None) -> None:
     # ---- Selectors ----
     col1, col2 = st.columns(2)
     with col1:
-        selected_param = st.selectbox("Parameter", param_cols, key="robust_param")
+        selected_param = st.selectbox(
+            "Parameter", param_cols, format_func=col_label, key="robust_param",
+        )
     with col2:
         metrics = ["total_r", "avg_r", "profit_factor", "win_rate"]
         available = [m for m in metrics if m in grid_df.columns]
-        selected_metric = st.selectbox("Metric", available, key="robust_metric")
+        selected_metric = st.selectbox(
+            "Metric", available, format_func=col_label, key="robust_metric",
+        )
 
     # ---- Run robustness analysis ----
     from trade_analysis.grid import analyze_robustness, find_robust_zones
@@ -48,7 +53,7 @@ def render(grid_df: pd.DataFrame, run_meta: pd.Series | None) -> None:
         return
 
     # ---- Robustness chart ----
-    st.subheader(f"{selected_metric} by {selected_param}")
+    st.subheader(f"{col_label(selected_metric)} by {col_label(selected_param)}")
     fig = build_robustness_chart(robustness_df, selected_param, selected_metric)
     st.plotly_chart(fig, use_container_width=True)
 
@@ -63,7 +68,7 @@ def render(grid_df: pd.DataFrame, run_meta: pd.Series | None) -> None:
     display_df = robustness_df[
         [c for c in robustness_df.columns if c != "index"]
     ].copy()
-    st.dataframe(display_df, use_container_width=True, hide_index=True)
+    st.dataframe(display_df.rename(columns=col_label), use_container_width=True, hide_index=True)
 
     # ---- Robust zones (all parameters) ----
     st.subheader("Robust Zones (All Parameters)")
@@ -78,13 +83,14 @@ def render(grid_df: pd.DataFrame, run_meta: pd.Series | None) -> None:
         return
 
     for param_name, param_zones in zones.items():
+        lp = col_label(param_name)
         if not param_zones:
-            st.markdown(f"**{param_name}**: No robust zones")
+            st.markdown(f"**{lp}**: No robust zones")
             continue
         for zone in param_zones:
             values = zone.get("values", [])
             avg = zone.get("avg_metric", 0)
             st.markdown(
-                f"**{param_name}**: values `{values}` — "
-                f"avg {selected_metric} = {avg:.3f}"
+                f"**{lp}**: values `{values}` — "
+                f"avg {col_label(selected_metric)} = {avg:.3f}"
             )

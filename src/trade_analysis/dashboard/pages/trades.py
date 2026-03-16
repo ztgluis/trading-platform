@@ -12,6 +12,7 @@ from trade_analysis.dashboard.components.charts import (
     build_breakdown_bars,
     build_equity_curve,
 )
+from trade_analysis.dashboard.components.labels import col_label
 from trade_analysis.dashboard.components.metrics import render_metric_row
 from trade_analysis.dashboard.pages.grid_results import _DISPLAY_STATS, _detect_param_cols
 
@@ -50,7 +51,7 @@ def render(grid_df: pd.DataFrame, run_meta: pd.Series | None) -> None:
     ranked = grid_df.sort_values("total_r", ascending=False).reset_index(drop=True)
     combo_labels = []
     for i, (_, row) in enumerate(ranked.iterrows()):
-        parts = [f"{p}={row[p]}" for p in param_cols if p in row]
+        parts = [f"{col_label(p)}={row[p]}" for p in param_cols if p in row]
         combo_labels.append(f"#{i + 1}: {', '.join(parts)}")
 
     selected_idx = st.selectbox(
@@ -140,10 +141,10 @@ def render(grid_df: pd.DataFrame, run_meta: pd.Series | None) -> None:
 
     # ---- Parameter detail ----
     st.subheader("Parameter Values")
-    param_data = {p: row[p] for p in param_cols if p in row}
+    param_data = {col_label(p): row[p] for p in param_cols if p in row}
     st.json(param_data)
 
     # ---- Full stats ----
     with st.expander("Full Statistics"):
-        all_stats = {c: row[c] for c in stat_cols if c in row}
+        all_stats = {col_label(c): row[c] for c in stat_cols if c in row}
         st.json({k: float(v) if isinstance(v, (int, float)) else v for k, v in all_stats.items()})
