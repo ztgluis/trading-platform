@@ -17,11 +17,11 @@ def _render_evidence(hypothesis_id: str, evidence: dict[str, Any]) -> None:
         col1, col2 = st.columns(2)
         with col1:
             st.metric("Best Period", evidence.get("best_period", "N/A"))
-            st.metric("Best Period Avg R", f"{evidence.get('best_period_avg_r', 0):.3f}")
+            st.metric("Best Period Avg R-Multiple", f"{evidence.get('best_period_avg_r', 0):.3f}")
         with col2:
             st.metric("Difference vs No Filter", f"{evidence.get('difference', 0):+.3f}")
             st.metric(
-                "Smallest Period Avg R",
+                "Smallest Period Avg R-Multiple",
                 f"{evidence.get('smallest_period_avg_r', 0):.3f}",
             )
 
@@ -42,7 +42,7 @@ def _render_evidence(hypothesis_id: str, evidence: dict[str, Any]) -> None:
         col1, col2 = st.columns(2)
         with col1:
             st.metric("Best Period", evidence.get("best_period", "N/A"))
-            st.metric("Best Avg R", f"{evidence.get('best_avg_r', 0):.3f}")
+            st.metric("Best Avg R-Multiple", f"{evidence.get('best_avg_r', 0):.3f}")
         with col2:
             robust = evidence.get("is_robust", False)
             st.metric("Robust?", "Yes" if robust else "No")

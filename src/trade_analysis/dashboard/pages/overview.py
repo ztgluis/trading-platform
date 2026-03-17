@@ -31,7 +31,7 @@ def render(grid_df: pd.DataFrame, run_meta: pd.Series | None) -> None:
     render_metric_row({
         "Total Combinations": (total_combos, None),
         "Sufficient Trades": (sufficient_combos, f"{sufficient_combos / total_combos:.0%} of total" if total_combos else None),
-        "Best Total R": (best_total_r, None),
+        "Best Total R-Multiple": (best_total_r, None),
         "Best Win Rate": (best_win_rate, None),
     })
 

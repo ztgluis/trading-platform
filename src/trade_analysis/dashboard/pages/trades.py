@@ -64,19 +64,15 @@ def render(grid_df: pd.DataFrame, run_meta: pd.Series | None) -> None:
     row = ranked.iloc[selected_idx]
 
     # ---- Aggregate metrics ----
+    _metric_keys = [
+        "total_trades", "win_rate", "avg_r", "total_r",
+        "profit_factor", "max_drawdown_r",
+    ]
     metrics = {}
-    if "total_trades" in row:
-        metrics["Total Trades"] = (int(row["total_trades"]), None)
-    if "win_rate" in row:
-        metrics["Win Rate"] = (row["win_rate"], None)
-    if "avg_r" in row:
-        metrics["Avg R"] = (row["avg_r"], None)
-    if "total_r" in row:
-        metrics["Total R"] = (row["total_r"], None)
-    if "profit_factor" in row:
-        metrics["Profit Factor"] = (row["profit_factor"], None)
-    if "max_drawdown_r" in row:
-        metrics["Max Drawdown R"] = (row["max_drawdown_r"], None)
+    for mk in _metric_keys:
+        if mk in row:
+            val = int(row[mk]) if mk == "total_trades" else row[mk]
+            metrics[col_label(mk)] = (val, None)
 
     if metrics:
         render_metric_row(metrics)
